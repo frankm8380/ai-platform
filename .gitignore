@@ -1,0 +1,16 @@
+# Ignore build directories and artifacts
+/build/
+/Debug/
+/Release/
+
+# Ignore executables, libraries, and temporary files
+*.exe
+*.dll
+*.pdb
+*.db
+
+# Ignore VS Code settings
+.vscode/
+
+# Ignore API key config
+config.h
