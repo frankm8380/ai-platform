@@ -21,14 +21,17 @@ target_include_directories(AIPlatform PRIVATE ${PROJECT_SOURCE_DIR}/lib)
 
 # Define the executable target for OpenAiChat
 add_executable(OpenAiChat
-    app/main.cpp
-    app/cli.cpp
+    app/cli_openai.cpp
 )
 
 # Define the executable target for DeepSeekChat
 add_executable(DeepSeekChat
-    app/main_deepseek.cpp
     app/cli_deepseek.cpp
+)
+
+# Define the executable target for AIConversationApp
+add_executable(AIConversationApp
+    app/ai_conversation_app.cpp
 )
 
 # Include the directories for headers (both `lib` and `app`)
@@ -42,78 +45,13 @@ target_include_directories(DeepSeekChat PRIVATE
     ${PROJECT_SOURCE_DIR}/app
 )
 
-# Link the common library to both executables
+target_include_directories(AIConversationApp PRIVATE
+    ${PROJECT_SOURCE_DIR}/lib
+    ${PROJECT_SOURCE_DIR}/app
+)
+
+# Link the common library to all executables
 target_link_libraries(OpenAiChat AIPlatform)
 target_link_libraries(DeepSeekChat AIPlatform)
+target_link_libraries(AIConversationApp AIPlatform)
 
-# Specify CURL and Zlib include and library paths
-set(CURL_INCLUDE_DIR "C:/Users/frank/vcpkg/installed/x64-windows/include/curl")  # Adjust this path
-set(CURL_LIBRARY "C:/Users/frank/vcpkg/installed/x64-windows/lib/libcurl.lib")  # Adjust this path
-set(ZLIB_INCLUDE_DIR "C:/Users/frank/vcpkg/installed/x64-windows/include")      # Adjust this path
-set(ZLIB_LIBRARY "C:/Users/frank/vcpkg/installed/x64-windows/lib/zlib.lib")     # Adjust this path
-
-# Find CURL package
-find_package(CURL REQUIRED)
-if (CURL_FOUND)
-    include_directories(${CURL_INCLUDE_DIRS})
-    target_link_libraries(OpenAiChat ${CURL_LIBRARIES})
-    target_link_libraries(DeepSeekChat ${CURL_LIBRARIES})
-else()
-    message(FATAL_ERROR "Could not find CURL. Ensure it is installed and available.")
-endif()
-
-# Find Zlib package
-find_package(ZLIB REQUIRED)
-if (ZLIB_FOUND)
-    include_directories(${ZLIB_INCLUDE_DIRS})
-    target_link_libraries(OpenAiChat ${ZLIB_LIBRARIES})
-    target_link_libraries(DeepSeekChat ${ZLIB_LIBRARIES})
-else()
-    message(FATAL_ERROR "Could not find Zlib. Ensure it is installed and available.")
-endif()
-
-# Post-build commands to copy required DLLs to the output directory for OpenAiChat
-add_custom_command(
-    TARGET OpenAiChat POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Users/frank/vcpkg/installed/x64-windows/bin/libcurl.dll"    # Adjust path
-        $<TARGET_FILE_DIR:OpenAiChat>
-)
-add_custom_command(
-    TARGET OpenAiChat POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Users/frank/vcpkg/installed/x64-windows/bin/sqlite3.dll"    # Adjust path
-        $<TARGET_FILE_DIR:OpenAiChat>
-)
-add_custom_command(
-    TARGET OpenAiChat POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Users/frank/vcpkg/installed/x64-windows/bin/zlib1.dll"      # Adjust path
-        $<TARGET_FILE_DIR:OpenAiChat>
-)
-
-# Post-build commands to copy required DLLs to the output directory for DeepSeekChat
-add_custom_command(
-    TARGET DeepSeekChat POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Users/frank/vcpkg/installed/x64-windows/bin/libcurl.dll"    # Adjust path
-        $<TARGET_FILE_DIR:DeepSeekChat>
-)
-add_custom_command(
-    TARGET DeepSeekChat POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Users/frank/vcpkg/installed/x64-windows/bin/sqlite3.dll"    # Adjust path
-        $<TARGET_FILE_DIR:DeepSeekChat>
-)
-add_custom_command(
-    TARGET DeepSeekChat POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Users/frank/vcpkg/installed/x64-windows/bin/zlib1.dll"      # Adjust path
-        $<TARGET_FILE_DIR:DeepSeekChat>
-)
-
-# Output build details for debugging
-message(STATUS "CURL Include Dirs: ${CURL_INCLUDE_DIRS}")
-message(STATUS "CURL Libraries: ${CURL_LIBRARIES}")
-message(STATUS "Zlib Include Dirs: ${ZLIB_INCLUDE_DIRS}")
-message(STATUS "Zlib Libraries: ${ZLIB_LIBRARIES}")

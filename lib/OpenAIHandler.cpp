@@ -1,4 +1,6 @@
+
 #include "OpenAIHandler.h"
+#include "DebugUtils.h"
 #include "config.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -16,6 +18,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::stri
 
 std::string perform_openai_api_call(const std::string& payload) {
     CURL* curl = curl_easy_init();
+    DEBUG_LOG(DEBUG_LEVEL_ERROR, "Failed to initialize CURL.");
     if (!curl) {
         throw std::runtime_error("Failed to initialize CURL.");
     }
@@ -42,28 +45,39 @@ std::string perform_openai_api_call(const std::string& payload) {
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
 
+    DEBUG_LOG(DEBUG_LEVEL_INFO, "Received API response: " + response_data);
     return response_data;
 }
 
-std::string OpenAIHandler::get_response(const std::string& session_id, const std::string& user_input, SessionManager& session_manager) {
-    session_manager.add_message(session_id, "user", user_input);
+std::string OpenAIHandler::get_response(const std::string& session_id, const std::string& user_input, SessionManager& session_manager, const std::string& role_name) {
+    auto history = session_manager.get_history(session_id);
 
     nlohmann::json messages = nlohmann::json::array();
-    auto history = session_manager.get_history(session_id);
-    for (const auto& [role, content] : history) {
-        messages.push_back({ {"role", role}, {"content", content} });
+
+   // Add system prompt
+    if (!system_prompt.empty()) {
+        messages.push_back({ {"role", "system"}, {"content", system_prompt} });
     }
 
-    nlohmann::json payload = {{"model", OPENAI_MODEL}, {"messages", messages}};
+    for (const auto& [role, content] : history) {
+        std::string api_role = (role == role_name) ? "assistant" : "user";
+        messages.push_back({ {"role", api_role}, {"content", content} });
+    }
+
+    messages.push_back({ {"role", "user"}, {"content", user_input} });
+
+    nlohmann::json payload = {
+        {"model", OPENAI_MODEL},
+        {"messages", messages}
+    };
+
     std::string payload_str = payload.dump();
     std::string response_data = perform_openai_api_call(payload_str);
 
-    try {
-        nlohmann::json response_json = nlohmann::json::parse(response_data);
-        std::string message_content = response_json["choices"][0]["message"]["content"];
-        session_manager.add_message(session_id, "assistant", message_content);
-        return message_content;
-    } catch (const std::exception& e) {
-        throw std::runtime_error("Error parsing OpenAI response: " + std::string(e.what()));
-    }
+    nlohmann::json response_json = nlohmann::json::parse(response_data);
+    std::string message_content = response_json["choices"][0]["message"]["content"];
+
+    session_manager.add_message(session_id, role_name, message_content);
+
+    return message_content;
 }
